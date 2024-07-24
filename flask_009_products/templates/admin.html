@@ -1,0 +1,20 @@
+{% extends "layout.html" %} {% block content %}
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{{ url_for('static', filename='admin.css') }}"
+/>
+<h2>Admin Login</h2>
+<p>Hello, Flask! this is the Admin Page.</p>
+<form method="POST" action="/admin">
+  <div>
+    <label for="username">Username:</label>
+    <input type="text" id="username" name="username" />
+  </div>
+  <div>
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" />
+  </div>
+  <button type="submit">Login</button>
+</form>
+{% endblock %}

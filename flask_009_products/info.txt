@@ -1,0 +1,153 @@
+pip install flask-mysql-connector
+
+
+
+CREATE DATABASE flask_001;
+
+use flask_001;
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL
+);
+
+
+Microsoft Windows [Version 10.0.19045.4651]
+(c) Microsoft Corporation. All rights reserved.
+
+E:\flask\flask_004_many_pages>cd..
+
+E:\flask>cd flask_001
+
+E:\flask\flask_001>venv\scripts\activate
+
+(venv) E:\flask\flask_001>cd..
+
+(venv) E:\flask>cd flask_007_login_mysql
+
+
+
+(venv) E:\flask\flask_007_login_mysql>python app.py
+
+
+ * Serving Flask app 'app'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 710-813-424
+127.0.0.1 - - [16/Jul/2024 10:44:40] "GET / HTTP/1.1" 200 -
+
+
+
+
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_mysqldb import MySQL
+import hashlib
+
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'
+
+# MySQL configurations
+app.config['MYSQL_HOST'] = 'localhost'
+app.config['MYSQL_USER'] = 'root'
+app.config['MYSQL_PASSWORD'] = 'Charan@#1998'
+app.config['MYSQL_DB'] = 'flask_001'
+
+mysql = MySQL(app)
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+
+@app.route('/')
+def home():
+    return render_template('home.html', title='Home', active_page='home')
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html', title='About', active_page='about')
+
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html', title='Contact', active_page='contact')
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        hashed_password = hash_password(password)
+
+        cursor = mysql.connection.cursor()
+        try:
+            cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_password))
+            mysql.connection.commit()
+            flash('You have successfully registered!', 'success')
+        except:
+            flash('Username already exists!', 'danger')
+        finally:
+            cursor.close()
+
+    return render_template('register.html', title='Register', active_page='register')
+
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if username == 'admin' and password == 'admin':
+            return redirect(url_for('admin_success'))
+        else:
+            return render_template('admin.html', title='Admin', error='Invalid credentials. Please try again.', active_page='admin')
+    return render_template('admin.html', title='Admin', active_page='admin')
+
+
+@app.route('/admin_success')
+def admin_success():
+    return render_template('admin_success.html', title='Admin Success', active_page='admin')
+
+
+@app.route('/user', methods=['GET', 'POST'])
+def user():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        hashed_password = hash_password(password)
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = %s AND password = %s", (username, hashed_password))
+        user = cursor.fetchone()
+        cursor.close()
+
+        if user:
+            return redirect(url_for('user_success'))
+        else:
+            return render_template('user.html', title='User', error='Invalid credentials. Please try again.')
+    return render_template('user.html', title='User', active_page='user')
+
+
+@app.route('/user_success')
+def user_success():
+    return render_template('user_success.html', title='User Success', active_page='user_success')
+
+
+@app.route('/users')
+def list_users():
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT id, username, password FROM users")
+    users = cursor.fetchall()
+    cursor.close()
+    return render_template('users.html', title='All Users', users=users, active_page='users')
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
